@@ -8,7 +8,9 @@
 #ifndef LIB_MOTOR_DC
 #define LIB_MOTOR_DC
 
-#define DEBUG
+#define DYN 1023
+
+//#define DEBUG
 
 //#define PRINT_DBG
 
@@ -48,6 +50,8 @@ public:
     void setOutputCoefficient(uint8_t coefficient);
     void setSamplingPeriod(uint32_t SamplingPeriod);
 
+    void setCenterPoint(int32_t ref);
+    
     /* Controle la sortie de vitesse :
         false : sortie filtrée
         true  : sortie directe provenant du joystick (bypass du filtrage)
@@ -75,6 +79,9 @@ private:
     /* range : uint8_t exprimant le nombre de bits pour le calcul de la vitesse*/
     uint32_t _range;  // number of bits, for DC motor set to 8 bits
 
+    int32_t reference;
+    int32_t min;
+    int32_t max;
     /* afin d"='éviter de alculer à chaque le max, on lecalcule et on le stocke*/
     uint32_t MaxValue;
 

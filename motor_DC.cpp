@@ -8,7 +8,6 @@
 #include "Arduino.h"
 #include "motor_DC.h"
 
-
 motor_DC::motor_DC(uint8_t Polar, uint8_t range, uint32_t SamplingPeriod,uint32_t DeadBand, uint8_t mark):
 	Polarity(Polar),
 	SamplingPeriod(SamplingPeriod),
@@ -27,6 +26,9 @@ motor_DC::motor_DC(uint8_t Polar, uint8_t range, uint32_t SamplingPeriod,uint32_
 		this->_range |= (1<<i);	// allume les bits jusqu'à range-1
 
 	this->MaxValue = _range;
+	this->reference = 512;
+	this->min = -512;
+	this->max = 512;
 }
 
 void motor_DC::begin() {
@@ -38,7 +40,7 @@ void motor_DC::begin(uint32_t Period) {
 	this->nbSamples=0;
 	this->PreviousRefreshTime = millis();
 	this->initialized_ = true;
-	PRINTLN("MxValue=",this->MaxValue);
+	PRINTLN("MaxValue=",this->MaxValue);
 }
 
 void motor_DC::setOutputCoefficient(uint8_t coefficient){
@@ -52,6 +54,14 @@ void motor_DC::setOutputCoefficient(uint8_t coefficient){
 void motor_DC::setSamplingPeriod(uint32_t SamplingPeriod) {
 	this->SamplingPeriod = SamplingPeriod;
 }
+
+void motor_DC::setCenterPoint(int32_t ref) {
+
+	this->reference = ref;
+	this->min = -ref;
+	this->max = DYN-ref;
+}
+
 /*
 void motor_DC::setJoystickPolarity(uint8_t polarity) {
 	this->Polarity = polarity;
@@ -69,7 +79,7 @@ uint32_t motor_DC::getMotorSpeed(int32_t value) {
 		PRINT("\tsumsamples :",this->sumSamples);
 		PreviousRefreshTime = millis();
 		sumSamples/=nbSamples;
-		sumSamples=constrain(sumSamples,-512,512);		// limite l'extrusion 
+		sumSamples=constrain(sumSamples,this->min,this->max);		// limite l'extrusion 
 		PRINT("\tsample moyen:",this->sumSamples);
 		setSpeedValue(sumSamples);
 		nbSamples=0;
@@ -85,7 +95,7 @@ void motor_DC::setSpeedValue(int32_t input){
 	//PRINT("joystick input =",input);
     if (input>=(int32_t)Joystick_dead_band) {
     	// positif et au-dessus de la bande morte
-    	tmp_output = map(input,Joystick_dead_band,512,0, this->MaxValue);
+    	tmp_output = map(input,Joystick_dead_band,this->max,0, this->MaxValue);
     	// PRINTLN(" Positif : intermédiaire 1 ",this->output_speed);
 
     	// OUTPUT est compris entre 0 et 2^range-1
@@ -93,9 +103,10 @@ void motor_DC::setSpeedValue(int32_t input){
     	// Applique le coefficient de sortie
 	//	tmp_output=(tmp_output*MaxOutputSpeedCoef) / 100;
 		tmp_direction = FORWARD;
+		tmp_output =(tmp_output*85)/100;
     	// Si le mode Revert est actif il faut inverser la sortie
     	if(this->Polarity == BACKWARD_WHEN_POSITIVE) {
-    		tmp_output = MaxValue - tmp_output;
+    		tmp_output = this->_range - tmp_output;
     		tmp_direction = BACKWARD;
 	    	// PRINTLN(" Positif : intermédiaire 2 ",this->output_speed);
 	    	// PRINTLN(" Positif : intermédiaire 2 - dir=",this->output_direction);
@@ -103,21 +114,20 @@ void motor_DC::setSpeedValue(int32_t input){
     } else if (input<=-(int32_t)Joystick_dead_band) {
 
     	// négatif et au-dessous de la bande morte
-		tmp_output = map(input,-512,-Joystick_dead_band,this->MaxValue,0);
+		tmp_output = map(input,this->min,-Joystick_dead_band,this->MaxValue,0);
 /*    	PRINT(" Négatif : intermédiaire 1 ",tmp_output);
 		PRINT("\t","");
-*/    	// Applique le coefficient de sortie
-//		tmp_output=(tmp_output*MaxOutputSpeedCoef) / 100;
-
-
+*/
 		if(this->Polarity == FORWARD_WHEN_POSITIVE) {
 			tmp_direction = BACKWARD;
+			tmp_output = (tmp_output*85)/100;
 			// Ajoute l'offset pour une sortie 
 			tmp_output = this->_range - tmp_output;
 	    	// PRINTLN(" Négatif : intermédiaire 2 ",this->output_speed);
 		} else {
 			// on ne change pas l'offset et la direction est avant
 			tmp_direction = FORWARD;
+			tmp_output = tmp_output;
 	    	// PRINT(" Négatif : intermédiaire 3 ",this->output_speed);
 	    	// PRINTLN(" Négatif : intermédiaire 3 - dir =",this->output_direction);
 		}
