@@ -8,6 +8,7 @@
 #include "Arduino.h"
 #include "motor_DC.h"
 
+
 motor_DC::motor_DC(uint8_t Polar, uint8_t range, uint32_t SamplingPeriod,uint32_t DeadBand, uint8_t mark):
 	Polarity(Polar),
 	SamplingPeriod(SamplingPeriod),
@@ -49,6 +50,10 @@ void motor_DC::setOutputCoefficient(uint8_t coefficient){
 	this->MaxValue = int32_t((float)(this->_range)*(float)this->MaxOutputSpeedCoef/100.0f); 
 	PRINT("\nrange=",byte(this->_range));
 	PRINTLN("\tMaxValue=",this->MaxValue);
+}
+
+void motor_DC::setForwardCompensationCoef(uint8_t coefficient){
+	this->_CompensationCoef = constrain(coefficient,0,100);
 }
 
 void motor_DC::setSamplingPeriod(uint32_t SamplingPeriod) {
@@ -103,7 +108,7 @@ void motor_DC::setSpeedValue(int32_t input){
     	// Applique le coefficient de sortie
 	//	tmp_output=(tmp_output*MaxOutputSpeedCoef) / 100;
 		tmp_direction = FORWARD;
-		tmp_output =(tmp_output*85)/100;
+		tmp_output =(tmp_output*this->_CompensationCoef)/100;
     	// Si le mode Revert est actif il faut inverser la sortie
     	if(this->Polarity == BACKWARD_WHEN_POSITIVE) {
     		tmp_output = this->_range - tmp_output;
@@ -120,7 +125,7 @@ void motor_DC::setSpeedValue(int32_t input){
 */
 		if(this->Polarity == FORWARD_WHEN_POSITIVE) {
 			tmp_direction = BACKWARD;
-			tmp_output = (tmp_output*85)/100;
+			tmp_output = (tmp_output*this->_CompensationCoef)/100;
 			// Ajoute l'offset pour une sortie 
 			tmp_output = this->_range - tmp_output;
 	    	// PRINTLN(" Négatif : intermédiaire 2 ",this->output_speed);

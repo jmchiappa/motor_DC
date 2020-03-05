@@ -49,7 +49,7 @@ public:
 #endif    
     void setOutputCoefficient(uint8_t coefficient);
     void setSamplingPeriod(uint32_t SamplingPeriod);
-
+    void setForwardCompensationCoef(uint8_t coefficient);
     void setCenterPoint(int32_t ref);
     
     /* Controle la sortie de vitesse :
@@ -119,6 +119,12 @@ private:
     Valeur à filtrer 
     */
     uint8_t _mark;
+
+    /* Applique un coefficient réduisant la vitesse de sortie en mode forward
+    pour compenser l'écart marche avant / marche arrière
+    Valeur exprimée en pourcent
+    */
+    uint8_t _CompensationCoef = 85;
 };
 
 #endif
